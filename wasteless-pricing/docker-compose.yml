@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  wasteless:
+    build: .
+    container_name: wasteless-pricing
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/app/data/wasteless.db
+      - NOVISIGN_URL=${NOVISIGN_URL:-}
+      - NOVISIGN_API_KEY=${NOVISIGN_API_KEY:-}
+      - PRICE_UPDATE_INTERVAL=${PRICE_UPDATE_INTERVAL:-5}
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - wasteless-data:/app/data
+      - wasteless-uploads:/app/uploads
+      - wasteless-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test:
+        ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  wasteless-data:
+    driver: local
+  wasteless-uploads:
+    driver: local
+  wasteless-logs:
+    driver: local

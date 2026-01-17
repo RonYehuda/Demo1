@@ -39,6 +39,12 @@
         </button>
       </li>
       <li class="nav-item" role="presentation">
+        <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" type="button">
+          <i class="bi bi-tags me-1"></i>
+          קטגוריות
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
         <button class="nav-link" id="novisign-tab" data-bs-toggle="tab" data-bs-target="#novisign" type="button">
           <i class="bi bi-display me-1"></i>
           NoviSign
@@ -178,8 +184,10 @@
               <table class="table table-hover mb-0">
                 <thead class="table-light">
                   <tr>
+                    <th>תמונה</th>
                     <th>שם המוצר</th>
                     <th>קטגוריה</th>
+                    <th>מק"ט</th>
                     <th>מחיר בסיס</th>
                     <th>הנחה</th>
                     <th>מחיר נוכחי</th>
@@ -190,6 +198,41 @@
                   </tr>
                 </thead>
                 <tbody id="productsTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories Tab -->
+      <div class="tab-pane fade p-3" id="categories" role="tabpanel">
+        <div class="row mb-3">
+          <div class="col">
+            <h4><i class="bi bi-tags me-2"></i>ניהול קטגוריות</h4>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-success" onclick="showAddCategoryModal()">
+              <i class="bi bi-plus-lg me-1"></i>הוסף קטגוריה
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>אייקון</th>
+                    <th>שם בעברית</th>
+                    <th>שם באנגלית</th>
+                    <th>סדר</th>
+                    <th>סטטוס</th>
+                    <th>פעולות</th>
+                  </tr>
+                </thead>
+                <tbody id="categoriesTable">
                 </tbody>
               </table>
             </div>
@@ -253,7 +296,7 @@
 
   <!-- Add/Edit Product Modal -->
   <div class="modal fade" id="productModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="productModalTitle">הוסף מוצר חדש</h5>
@@ -276,10 +319,6 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label">קטגוריה</label>
                 <select class="form-select" id="productCategory" required>
-                  <option value="vegetables">ירקות</option>
-                  <option value="fruits">פירות</option>
-                  <option value="herbs">עשבי תיבול</option>
-                  <option value="salads">סלטים</option>
                 </select>
               </div>
               <div class="col-md-6 mb-3">
@@ -299,6 +338,7 @@
                   <option value="יחידה">יחידה</option>
                   <option value="אגודה">אגודה</option>
                   <option value="קופסה">קופסה</option>
+                  <option value="ליטר">ליטר</option>
                 </select>
               </div>
             </div>
@@ -308,8 +348,25 @@
                 <input type="date" class="form-control" id="expiryDate" required>
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label">מספר אצווה</label>
-                <input type="text" class="form-control" id="batchNumber">
+                <label class="form-label">מספר קטלוגי (SKU)</label>
+                <input type="text" class="form-control" id="catalogNumber" placeholder="יווצר אוטומטית אם ריק">
+                <small class="text-muted">השאר ריק ליצירה אוטומטית</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label class="form-label">תמונת מוצר</label>
+                <div class="d-flex align-items-center gap-3">
+                  <div id="productImagePreview" class="product-image-preview">
+                    <i class="bi bi-image text-muted"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <input type="file" class="form-control mb-2" id="productImage" accept="image/*">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="generateAIImage()" id="aiImageBtn">
+                      <i class="bi bi-magic me-1"></i>צור תמונה עם AI
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </form>
@@ -317,6 +374,43 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
           <button type="button" class="btn btn-success" onclick="saveProduct()">שמור</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Category Modal -->
+  <div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="categoryModalTitle">הוסף קטגוריה</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="categoryForm">
+            <input type="hidden" id="categoryId">
+            <div class="mb-3">
+              <label class="form-label">שם בעברית</label>
+              <input type="text" class="form-control" id="categoryNameHe" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">שם באנגלית (אותיות קטנות וקו תחתון בלבד)</label>
+              <input type="text" class="form-control" id="categoryNameEn" required pattern="[a-z_]+">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">אייקון (Bootstrap Icons)</label>
+              <input type="text" class="form-control" id="categoryIcon" placeholder="bi-box">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">סדר הצגה</label>
+              <input type="number" class="form-control" id="categorySortOrder" value="0" min="0">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
+          <button type="button" class="btn btn-success" onclick="saveCategory()">שמור</button>
         </div>
       </div>
     </div>

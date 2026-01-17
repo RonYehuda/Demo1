@@ -1,9 +1,11 @@
 const axios = require('axios');
 const { all, run } = require('../database/db');
 const { getDaysToExpiry } = require('./pricingEngine');
+const config = require('../config/env');
 
-const NOVISIGN_URL = process.env.NOVISIGN_URL || '';
-const NOVISIGN_API_KEY = process.env.NOVISIGN_API_KEY || '';
+const NOVISIGN_URL = config.novisign.url || '';
+const NOVISIGN_API_KEY = config.novisign.apiKey || '';
+const BASE_URL = config.baseUrl;
 
 /**
  * Format product data for NoviSign display
@@ -30,6 +32,8 @@ function formatProductForDisplay(product) {
     name: product.name_he,
     nameEn: product.name_en,
     category: product.category_he,
+    catalogNumber: product.catalog_number,
+    batchNumber: product.batch_number,
     originalPrice: product.base_price.toFixed(2),
     discountedPrice: product.current_price.toFixed(2),
     discountPercent: product.discount_percent,
@@ -38,7 +42,8 @@ function formatProductForDisplay(product) {
     daysToExpiry,
     urgencyLevel,
     urgencyText,
-    hasDiscount: product.discount_percent > 0
+    hasDiscount: product.discount_percent > 0,
+    imageUrl: product.image_path ? `${BASE_URL}/uploads/products/${product.image_path}` : null
   };
 }
 

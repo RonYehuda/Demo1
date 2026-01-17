@@ -1,7 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+// Load configuration (includes dotenv)
+const config = require('./config/env');
+const logger = require('./utils/logger');
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const { initDatabase, closeDatabase, dbPath } = require('./database/db');
 const { initPriceUpdateJob, runImmediateUpdate, stopAllJobs } = require('./utils/cronJobs');
@@ -10,19 +14,22 @@ const { initPriceUpdateJob, runImmediateUpdate, stopAllJobs } = require('./utils
 const productsRouter = require('./routes/products');
 const pricingRouter = require('./routes/pricing');
 const novisignRouter = require('./routes/novisign');
+const categoriesRouter = require('./routes/categories');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // API Routes
 app.use('/api/products', productsRouter);
 app.use('/api/pricing', pricingRouter);
 app.use('/api/novisign', novisignRouter);
+app.use('/api/categories', categoriesRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -44,55 +51,60 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-// Serve frontend for all other routes
-app.get('*', (req, res) => {
+// Serve frontend for all other routes (except API)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return notFoundHandler(req, res, next);
+  }
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 // Start server
 async function startServer() {
   try {
     // Initialize database first
     await initDatabase();
-    console.log('');
-    console.log('╔════════════════════════════════════════════════════════╗');
-    console.log('║         🛒 WasteLess Dynamic Pricing System            ║');
-    console.log('╚════════════════════════════════════════════════════════╝');
-    console.log('');
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
-    console.log(`📊 Database: ${dbPath}`);
-    console.log(`📺 NoviSign URL: ${process.env.NOVISIGN_URL || 'Not configured'}`);
+
+    logger.info('');
+    logger.info('╔════════════════════════════════════════════════════════╗');
+    logger.info('║         WasteLess Dynamic Pricing System               ║');
+    logger.info('╚════════════════════════════════════════════════════════╝');
+    logger.info('');
+    logger.info(`Server running at http://localhost:${PORT}`);
+    logger.info(`Database: ${dbPath}`);
+    logger.info(`NoviSign: ${config.novisign.isConfigured ? 'Configured' : 'Not configured'}`);
+    logger.info(`AI Images: ${config.openai.isConfigured ? 'Configured' : 'Not configured'}`);
 
     // Initialize cron job
-    const updateInterval = parseInt(process.env.PRICE_UPDATE_INTERVAL) || 5;
-    initPriceUpdateJob(updateInterval);
+    initPriceUpdateJob(config.priceUpdateInterval);
 
-    console.log('');
-    console.log('API Endpoints:');
-    console.log('  GET    /api/health                    - Health check');
-    console.log('  GET    /api/products                  - List all products');
-    console.log('  POST   /api/products                  - Create product');
-    console.log('  PUT    /api/products/:id              - Update product');
-    console.log('  DELETE /api/products/:id              - Delete product');
-    console.log('  GET    /api/pricing/summary           - Pricing analytics');
-    console.log('  POST   /api/pricing/calculate         - Recalculate all prices');
-    console.log('  POST   /api/novisign/bulk-update      - Update NoviSign displays');
-    console.log('  GET    /api/novisign/preview          - Preview display data');
-    console.log('');
-    console.log('Press Ctrl+C to stop the server');
-    console.log('════════════════════════════════════════════════════════');
+    logger.info('');
+    logger.info('API Endpoints:');
+    logger.info('  GET    /api/health                    - Health check');
+    logger.info('  GET    /api/products                  - List all products');
+    logger.info('  POST   /api/products                  - Create product');
+    logger.info('  GET    /api/categories                - List categories');
+    logger.info('  POST   /api/categories                - Create category');
+    logger.info('  GET    /api/pricing/summary           - Pricing analytics');
+    logger.info('  POST   /api/novisign/bulk-update      - Update NoviSign displays');
+    logger.info('');
+    logger.info('Press Ctrl+C to stop the server');
+    logger.info('════════════════════════════════════════════════════════');
 
     // Run initial price update
     try {
       await runImmediateUpdate();
     } catch (error) {
-      console.log('⚠️  Initial update skipped:', error.message);
+      logger.warn('Initial update skipped', { reason: error.message });
     }
 
     // Start listening
     app.listen(PORT);
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server', { error: error.message });
     process.exit(1);
   }
 }
@@ -101,16 +113,14 @@ startServer();
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('');
-  console.log('⏹️  SIGINT received, shutting down gracefully...');
+  logger.info('SIGINT received, shutting down gracefully...');
   stopAllJobs();
   closeDatabase();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('');
-  console.log('⏹️  SIGTERM received, shutting down gracefully...');
+  logger.info('SIGTERM received, shutting down gracefully...');
   stopAllJobs();
   closeDatabase();
   process.exit(0);

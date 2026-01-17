@@ -1,4 +1,4 @@
-const { initDatabase, exec, run, closeDatabase, dbPath } = require('./db');
+const { initDatabase, exec, run, get, closeDatabase, dbPath } = require('./db');
 
 async function initialize() {
   console.log('🗄️  Initializing WasteLess Database...');
@@ -7,6 +7,18 @@ async function initialize() {
 
   // Create tables
   exec(`
+    -- Categories table
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name_en TEXT NOT NULL UNIQUE,
+      name_he TEXT NOT NULL,
+      icon TEXT,
+      is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
     -- Products table
     CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -14,6 +26,8 @@ async function initialize() {
       name_en TEXT NOT NULL,
       category TEXT NOT NULL,
       category_he TEXT NOT NULL,
+      category_id INTEGER,
+      catalog_number TEXT,
       base_price REAL NOT NULL,
       current_price REAL NOT NULL,
       discount_percent INTEGER DEFAULT 0,
@@ -21,9 +35,14 @@ async function initialize() {
       unit TEXT NOT NULL,
       expiry_date TEXT NOT NULL,
       batch_number TEXT,
+      image_path TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (category_id) REFERENCES categories(id)
     );
+
+    -- Create index for catalog_number lookups
+    CREATE INDEX IF NOT EXISTS idx_catalog_number ON products(catalog_number);
 
     -- Pricing rules table
     CREATE TABLE IF NOT EXISTS pricing_rules (
@@ -57,6 +76,26 @@ async function initialize() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Insert default categories if not exist
+  const defaultCategories = [
+    { name_en: 'vegetables', name_he: 'ירקות', icon: 'bi-carrot', sort_order: 1 },
+    { name_en: 'fruits', name_he: 'פירות', icon: 'bi-apple', sort_order: 2 },
+    { name_en: 'herbs', name_he: 'עשבי תיבול', icon: 'bi-flower1', sort_order: 3 },
+    { name_en: 'salads', name_he: 'סלטים', icon: 'bi-basket', sort_order: 4 },
+    { name_en: 'dairy', name_he: 'מוצרי חלב', icon: 'bi-droplet', sort_order: 5 },
+    { name_en: 'bakery', name_he: 'מאפים', icon: 'bi-basket2', sort_order: 6 }
+  ];
+
+  for (const cat of defaultCategories) {
+    const exists = get('SELECT id FROM categories WHERE name_en = ?', [cat.name_en]);
+    if (!exists) {
+      run(
+        'INSERT INTO categories (name_en, name_he, icon, sort_order) VALUES (?, ?, ?, ?)',
+        [cat.name_en, cat.name_he, cat.icon, cat.sort_order]
+      );
+    }
+  }
 
   // Clear existing rules
   exec('DELETE FROM pricing_rules');
@@ -96,8 +135,8 @@ async function initialize() {
 
   console.log('✅ Database initialized successfully!');
   console.log(`📍 Database location: ${dbPath}`);
-  console.log('📊 Tables created: products, pricing_rules, price_history, novisign_events');
-  console.log('⚙️  Default pricing rules added for all produce categories');
+  console.log('📊 Tables created: categories, products, pricing_rules, price_history, novisign_events');
+  console.log('⚙️  Default categories and pricing rules added');
 }
 
 initialize().catch(err => {
