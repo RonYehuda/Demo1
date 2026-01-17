@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WasteLess - מערכת תמחור דינמי</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">
+        <i class="bi bi-recycle me-2"></i>
+        WasteLess
+      </a>
+      <span class="navbar-text text-white">
+        מערכת תמחור דינמי להפחתת בזבוז מזון
+      </span>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container-fluid mt-3">
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button">
+          <i class="bi bi-speedometer2 me-1"></i>
+          לוח בקרה
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button">
+          <i class="bi bi-box-seam me-1"></i>
+          מלאי
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="novisign-tab" data-bs-toggle="tab" data-bs-target="#novisign" type="button">
+          <i class="bi bi-display me-1"></i>
+          NoviSign
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="mainTabContent">
+      <!-- Dashboard Tab -->
+      <div class="tab-pane fade show active p-3" id="dashboard" role="tabpanel">
+        <div class="row g-3">
+          <!-- Stats Cards -->
+          <div class="col-md-3">
+            <div class="card text-white bg-primary h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-subtitle mb-2">סה"כ מוצרים</h6>
+                    <h2 class="card-title mb-0" id="totalProducts">0</h2>
+                  </div>
+                  <i class="bi bi-box-seam fs-1 opacity-50"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-white bg-warning h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-subtitle mb-2">מוצרים במבצע</h6>
+                    <h2 class="card-title mb-0" id="discountedProducts">0</h2>
+                  </div>
+                  <i class="bi bi-percent fs-1 opacity-50"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-white bg-danger h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-subtitle mb-2">פג תוקף בקרוב</h6>
+                    <h2 class="card-title mb-0" id="expiringProducts">0</h2>
+                  </div>
+                  <i class="bi bi-exclamation-triangle fs-1 opacity-50"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-white bg-success h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-subtitle mb-2">חיסכון ללקוחות</h6>
+                    <h2 class="card-title mb-0">₪<span id="totalSavings">0</span></h2>
+                  </div>
+                  <i class="bi bi-piggy-bank fs-1 opacity-50"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>פילוח לפי קטגוריות</h5>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>קטגוריה</th>
+                        <th>מספר מוצרים</th>
+                        <th>הנחה ממוצעת</th>
+                        <th>פוטנציאל חיסכון</th>
+                      </tr>
+                    </thead>
+                    <tbody id="categoryBreakdown">
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory Tab -->
+      <div class="tab-pane fade p-3" id="inventory" role="tabpanel">
+        <!-- Toolbar -->
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="searchInput" placeholder="חיפוש מוצרים...">
+            </div>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="categoryFilter">
+              <option value="">כל הקטגוריות</option>
+              <option value="vegetables">ירקות</option>
+              <option value="fruits">פירות</option>
+              <option value="herbs">עשבי תיבול</option>
+              <option value="salads">סלטים</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="expiryFilter">
+              <option value="">כל התפוגות</option>
+              <option value="today">פג תוקף היום</option>
+              <option value="tomorrow">פג תוקף מחר</option>
+              <option value="week">פג תוקף תוך שבוע</option>
+            </select>
+          </div>
+          <div class="col-md-4 text-start">
+            <button class="btn btn-outline-primary me-2" onclick="refreshProducts()">
+              <i class="bi bi-arrow-clockwise me-1"></i>רענן
+            </button>
+            <button class="btn btn-success" onclick="showAddProductModal()">
+              <i class="bi bi-plus-lg me-1"></i>הוסף מוצר
+            </button>
+          </div>
+        </div>
+
+        <!-- Products Table -->
+        <div class="card">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>שם המוצר</th>
+                    <th>קטגוריה</th>
+                    <th>מחיר בסיס</th>
+                    <th>הנחה</th>
+                    <th>מחיר נוכחי</th>
+                    <th>כמות</th>
+                    <th>תפוגה</th>
+                    <th>אצווה</th>
+                    <th>פעולות</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NoviSign Tab -->
+      <div class="tab-pane fade p-3" id="novisign" role="tabpanel">
+        <!-- NoviSign Status -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-gear me-2"></i>סטטוס חיבור</h5>
+              </div>
+              <div class="card-body">
+                <div id="novisignStatus" class="alert alert-info">
+                  בודק חיבור...
+                </div>
+                <button class="btn btn-primary" onclick="updateNovisignDisplays()">
+                  <i class="bi bi-arrow-repeat me-1"></i>עדכן את כל התצוגות
+                </button>
+                <button class="btn btn-outline-secondary ms-2" onclick="refreshNovisignStatus()">
+                  <i class="bi bi-arrow-clockwise me-1"></i>בדוק חיבור
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>לוג אירועים</h5>
+              </div>
+              <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                <div id="eventsLog">
+                  <p class="text-muted">טוען אירועים...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Display Preview -->
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-display me-2"></i>תצוגה מקדימה</h5>
+            <button class="btn btn-sm btn-outline-primary" onclick="refreshPreview()">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="row" id="displayPreview">
+              <p class="text-muted text-center">טוען תצוגה מקדימה...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Product Modal -->
+  <div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="productModalTitle">הוסף מוצר חדש</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="productForm">
+            <input type="hidden" id="productId">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">שם המוצר (עברית)</label>
+                <input type="text" class="form-control" id="nameHe" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">שם באנגלית</label>
+                <input type="text" class="form-control" id="nameEn" required>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">קטגוריה</label>
+                <select class="form-select" id="productCategory" required>
+                  <option value="vegetables">ירקות</option>
+                  <option value="fruits">פירות</option>
+                  <option value="herbs">עשבי תיבול</option>
+                  <option value="salads">סלטים</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">מחיר בסיס (₪)</label>
+                <input type="number" class="form-control" id="basePrice" step="0.01" min="0" required>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">כמות</label>
+                <input type="number" class="form-control" id="quantity" min="0" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">יחידת מידה</label>
+                <select class="form-select" id="unit">
+                  <option value="ק&quot;ג">ק"ג</option>
+                  <option value="יחידה">יחידה</option>
+                  <option value="אגודה">אגודה</option>
+                  <option value="קופסה">קופסה</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">תאריך תפוגה</label>
+                <input type="date" class="form-control" id="expiryDate" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">מספר אצווה</label>
+                <input type="text" class="form-control" id="batchNumber">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
+          <button type="button" class="btn btn-success" onclick="saveProduct()">שמור</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toast" class="toast" role="alert">
+      <div class="toast-header">
+        <strong class="me-auto" id="toastTitle">הודעה</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+      </div>
+      <div class="toast-body" id="toastBody"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
